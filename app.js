@@ -24,19 +24,54 @@ connection.authenticate().then(() => {
 })
 
 app.get("/games", auth, async (req, res) => {
+  const HATEOAS = [
+    {
+      href: "http://localhost:3333/games",
+      method: "GET",
+      rel: "self"
+    },
+    {
+      href: "http://localhost:3333/game",
+      method: "POST",
+      rel: "create_game"
+    },
+    {
+      href: "http://localhost:3333/auth",
+      method: "POST",
+      rel: "login"
+    }
+  ]
   const getAllGames = await GameModel.findAll()
-  return res.json(getAllGames).status(200, "ok")
+  return res.json({ getAllGames, _links: HATEOAS }).status(200, "ok")
 })
 
 
 
 app.get("/game/:id", auth, (req, res) => {
+
   const { id } = req.params
+  const HATEOAS = [
+    {
+      href: `http://localhost:3333/game/${id}`,
+      method: "DELETE",
+      rel: "delete_game"
+    },
+    {
+      href: `http://localhost:3333/game`,
+      method: "POST",
+      rel: "create_game"
+    },
+    {
+      href: `http://localhost:3333/auth`,
+      method: "POST",
+      rel: "login"
+    }
+  ]
   if (isNaN(id)) {
     res.status(400).json({ message: "Id inválido" })
   } else {
     const game = db.games.find((game) => game.id == id)
-    game ? res.json(game) : res.status(404).json({ message: "Jogo não encontrado" })
+    game ? res.json({ game, _links: HATEOAS }) : res.status(404).json({ message: "Jogo não encontrado" })
   }
 })
 
@@ -68,6 +103,23 @@ app.delete("/game/:id", auth, async (req, res) => {
 
 app.put("/game/:id", auth, async (req, res) => {
   const { id } = req.params
+  const HATEOAS = [
+    {
+      href: `http://localhost:3333/game/${id}`,
+      method: "DELETE",
+      rel: "delete_game"
+    },
+    {
+      href: `http://localhost:3333/game/${id}`,
+      method: "PUT",
+      rel: "edit_game"
+    },
+    {
+      href: `http://localhost:3333/games`,
+      method: "GET",
+      rel: "getAll_games"
+    }
+  ]
   if (isNaN(id)) {
     return res.status(400).json({ message: "Id inválido!" })
   } try {
@@ -88,7 +140,7 @@ app.put("/game/:id", auth, async (req, res) => {
 
       await game.save()
       await game.reload()
-      res.status(200).json({ message: "Jogo atualizado!", game: game.toJSON() })
+      res.status(200).json({ message: "Jogo atualizado!", game: game.toJSON(), _links: HATEOAS })
     }
   }
   catch (error) {
